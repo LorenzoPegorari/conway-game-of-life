@@ -307,8 +307,6 @@ static void compute_next_frame(cell_t **grid) {
                 cell->state = DEAD;
         }
     }
-
-    refresh();
 }
 
 

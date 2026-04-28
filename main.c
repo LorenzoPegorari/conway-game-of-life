@@ -37,7 +37,7 @@ static int y_ssum(int y1, int y2);
 static int count_living_neighbors(cell_t **grid, int x, int y);
 static void update_grid(cell_t **grid);
 static void compute_next_frame(cell_t **grid);
-static void draw_frame(cell_t **grid);
+static int draw_frame(cell_t **grid);
 
 
 int main(int argc, char* argv[]) {
@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    /* Translate `Carriage Return` to `Newline` */
+    /* Translate "Carriage Return" to "Newline" */
     if (nl() == ERR) {
         endwin();
         fprintf(stderr, "Error when setting Carriage Return translation to Newline!\n");
@@ -153,13 +153,31 @@ int main(int argc, char* argv[]) {
     }
 
 
+    /* Ask user for the initial positions */
     x = COLS / 2;
     y = LINES / 2;
     do {
         update_grid(grid);
-        draw_frame(grid);
-        move(y, x);
+        if (draw_frame(grid)) {
+            endwin();
+            fprintf(stderr, "Error when drawing next game frame!\n");
+            for (x = 0; x < COLS; ++x)
+                free(grid[x]);
+            free(grid);
+            exit(EXIT_FAILURE);
+        }
 
+        /* Move cursor to (x,y) */
+        if (move(y, x) == ERR) {
+            endwin();
+            fprintf(stderr, "Error when moving cursor to (x=%d,y=%d)!\n", x, y);
+            for (x = 0; x < COLS; ++x)
+                free(grid[x]);
+            free(grid);
+            exit(EXIT_FAILURE);
+        }
+
+        /* Handle keypresses */
         ch = getch();
         switch (ch) {
             case KEY_LEFT:
@@ -190,20 +208,51 @@ int main(int argc, char* argv[]) {
             case 'E':
                 grid[x][y].state = (grid[x][y].state == DEAD) ? ALIVE : DEAD;
                 break;
+
+            case CTRL_KEY('q'):
+                endwin();
+                for (x = 0; x < COLS; ++x)
+                    free(grid[x]);
+                free(grid);
+                exit(EXIT_SUCCESS);
         }
     } while (ch != '\n' && ch != KEY_ENTER);
 
-    curs_set(0);
+    /* Hide cursor before game begins */
+    if (curs_set(0) == ERR) {
+        endwin();
+        fprintf(stderr, "Error when trying to hide the cursor!\n");
+        for (x = 0; x < COLS; ++x)
+            free(grid[x]);
+        free(grid);
+        exit(EXIT_FAILURE);
+    }
 
+    /* Start game */
     do {
         compute_next_frame(grid);
         update_grid(grid);
-        draw_frame(grid);
-        ch = getch();
-    } while (ch != CTRL_KEY('q'));
+        if (draw_frame(grid)) {
+            endwin();
+            fprintf(stderr, "Error when drawing next game frame!\n");
+            for (x = 0; x < COLS; ++x)
+                free(grid[x]);
+            free(grid);
+            exit(EXIT_FAILURE);
+        }
+    } while (getch() != CTRL_KEY('q'));
 
-    endwin();
 
+    /* Release allocate memory for `grid` */
+    for (x = 0; x < COLS; ++x)
+        free(grid[x]);
+    free(grid);
+
+    /* Exit terminal "curses mode" */
+    if (endwin() == ERR) {
+        fprintf(stderr, "Error when exiting 'curses mode'!\n");
+        exit(EXIT_FAILURE);
+    }
     exit(EXIT_SUCCESS);
 }
 
@@ -315,7 +364,7 @@ static void compute_next_frame(cell_t **grid) {
  * The current frame is taken from the `.state` values of all cells inside the
  * given `grid`.
  */
-static void draw_frame(cell_t **grid) {
+static int draw_frame(cell_t **grid) {
     int x, y, color;
 
     for (x = 0; x < COLS; ++x) {
@@ -331,5 +380,7 @@ static void draw_frame(cell_t **grid) {
         }
     }
 
-    refresh();
+    if (refresh() == ERR)
+        return -1;
+    return 0;
 }

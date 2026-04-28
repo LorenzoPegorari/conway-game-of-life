@@ -11,6 +11,13 @@
 
 #define TIME_OUT_DEFAULT 100
 
+#define MODE_NULL  0
+#define MODE_CHAR  1
+#define MODE_BW    2
+#define MODE_COLOR 3
+
+#define MODE_CHAR_SYMBOL '*'
+
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 /* Two-step macro (with extra level of indirection) to allow the preprocessor
@@ -37,7 +44,7 @@ static int y_ssum(int y1, int y2);
 static int count_living_neighbors(cell_t **grid, int x, int y);
 static void update_grid(cell_t **grid);
 static void compute_next_frame(cell_t **grid);
-static int draw_frame(cell_t **grid);
+static int draw_frame(cell_t **grid, int mode);
 
 
 int main(int argc, char* argv[]) {
@@ -46,25 +53,35 @@ int main(int argc, char* argv[]) {
     int ch;
     int err;
     int timeout_val;
+    int mode;
 
 
     timeout_val = TIME_OUT_DEFAULT;
+    mode = MODE_NULL;
     /* Handle arguments */
     for (i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             fprintf(stdout, "Usage: %s [-v | --version] [-h | --help] <file-path>\n", argv[0]);
             fprintf(stdout, "\nOptions:\n");
-            fprintf(stdout, "    -h        | --help           = print this info\n");
-            fprintf(stdout, "    -v        | --version        = print application's version\n");
-            fprintf(stdout, "    -t <uint> | --timeout <uint> = define timeout time in ms (default=%i)\n", TIME_OUT_DEFAULT);
+            fprintf(stdout, "  -h               = print this info\n");
+            fprintf(stdout, "  --help\n");
+            fprintf(stdout, "  -v               = print application's version\n");
+            fprintf(stdout, "  --version\n");
+            fprintf(stdout, "  -t <uint>        = define timeout time in ms (default is '%i' ms)\n", TIME_OUT_DEFAULT);
+            fprintf(stdout, "  --timeout <uint>\n");
+            fprintf(stdout, "  --char           = uses char '%c' for alive cells\n", MODE_CHAR_SYMBOL);
+            fprintf(stdout, "                     this is the default mode for terminals without colors\n");
+            fprintf(stdout, "  --bw             = uses color white for alive cells\n");
+            fprintf(stdout, "  --color          = uses colors for alive cells (depending on alive neighbors)\n");
+            fprintf(stdout, "                     this is the default mode for terminals with colors\n");
             fprintf(stdout, "\nUsable commands:\n");
-            fprintf(stdout, "    W | UP    = move up one cell\n");
-            fprintf(stdout, "    S | DOWN  = move down one cell\n");
-            fprintf(stdout, "    A | LEFT  = move left one cell\n");
-            fprintf(stdout, "    D | RIGHT = move right one cell\n");
-            fprintf(stdout, "    E         = turn on/off selected cell\n");
-            fprintf(stdout, "    ENTER     = start game\n");
-            fprintf(stdout, "    CTRL+Q    = quit\n");
+            fprintf(stdout, "  W | UP    = move up one cell\n");
+            fprintf(stdout, "  S | DOWN  = move down one cell\n");
+            fprintf(stdout, "  A | LEFT  = move left one cell\n");
+            fprintf(stdout, "  D | RIGHT = move right one cell\n");
+            fprintf(stdout, "  E         = turn on/off selected cell\n");
+            fprintf(stdout, "  ENTER     = start game\n");
+            fprintf(stdout, "  CTRL+Q    = quit\n");
             exit(EXIT_SUCCESS);
         } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
             fprintf(stdout, "%s version %s\n", argv[0], CGOL_VER);
@@ -80,6 +97,24 @@ int main(int argc, char* argv[]) {
                 fprintf(stderr, "Value '%i' of argument '%s' can't be negative!\n", timeout_val, argv[i - 1]);
                 exit(EXIT_FAILURE);
             }
+        } else if (strcmp(argv[i], "--char") == 0) {
+            if (mode != MODE_NULL) {
+                fprintf(stderr, "Options '--char', '--bw' and '--color' are incompatible! Choose only one!\n");
+                exit(EXIT_FAILURE);
+            }
+            mode = MODE_CHAR;
+        } else if (strcmp(argv[i], "--bw") == 0) {
+            if (mode != MODE_NULL) {
+                fprintf(stderr, "Options '--char', '--bw' and '--color' are incompatible! Choose only one!\n");
+                exit(EXIT_FAILURE);
+            }
+            mode = MODE_BW;
+        } else if (strcmp(argv[i], "--color") == 0) {
+            if (mode != MODE_NULL) {
+                fprintf(stderr, "Options '--char', '--bw' and '--color' are incompatible! Choose only one!\n");
+                exit(EXIT_FAILURE);
+            }
+            mode = MODE_COLOR;
         } else {
             fprintf(stderr, "Unrecognized argument '%s'!\n", argv[i]);
             exit(EXIT_FAILURE);
@@ -91,6 +126,61 @@ int main(int argc, char* argv[]) {
        If errors occur, initscr() writes an appropriate error message to
        standard error and exits. If successful, returns a pointer to stdscr. */
     (void)initscr();
+
+    /* Check if terminal supports colors, and if so enable them */
+    if (has_colors() == FALSE) {
+        switch (mode) {
+            case MODE_CHAR:
+                break;
+
+            case MODE_NULL:
+                mode = MODE_CHAR;
+                break;
+
+            case MODE_BW:
+            case MODE_COLOR:
+                endwin();
+                fprintf(stderr, "Your terminal does not support colors!\n");
+                exit(EXIT_FAILURE);
+        }
+    } else {
+        switch (mode) {
+            case MODE_CHAR:
+                break;
+
+            case MODE_NULL:
+                mode = MODE_COLOR;
+                __attribute__ ((fallthrough));  /* GCC specific: signal explicit fallthrough */
+
+            case MODE_BW:
+            case MODE_COLOR:
+                if (start_color() == ERR) {
+                    endwin();
+                    fprintf(stderr, "Error when enabling colors!\n");
+                    exit(EXIT_FAILURE);
+                }
+                err = 0;
+                err |= init_pair(1, COLOR_BLACK, COLOR_BLUE);
+                err |= init_pair(2, COLOR_BLACK, COLOR_CYAN);
+                err |= init_pair(3, COLOR_BLACK, COLOR_GREEN);
+                err |= init_pair(4, COLOR_BLACK, COLOR_YELLOW);
+                err |= init_pair(5, COLOR_BLACK, COLOR_RED);
+                err |= init_pair(6, COLOR_BLACK, COLOR_MAGENTA);
+                err |= init_pair(7, COLOR_BLACK, COLOR_WHITE);
+                err |= init_pair(8, COLOR_BLACK, COLOR_WHITE);
+                err |= init_pair(9, COLOR_BLACK, COLOR_WHITE);
+                if (err == ERR) {
+                    endwin();
+                    fprintf(stderr, "Error when setting color pairs!\n");
+                    exit(EXIT_FAILURE);
+                }
+                break;
+        }
+    }
+
+    /* Set timeout for all `ncurses` input function blocks.
+       After `delay` milliseconds the function fails if there is still no input. */
+    timeout(timeout_val);
 
     /* Set terminal to "raw mode".
        In "raw mode", control characters like suspend (CTRL-Z), interrupt and
@@ -126,37 +216,6 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    /* Set timeout for all `ncurses` input function blocks.
-       After `delay` milliseconds the function fails if there is still no input. */
-    timeout(timeout_val);
-
-    /* Check if terminal supports colors, and if so enable them */
-    if (has_colors() == FALSE) {
-        endwin();
-        fprintf(stderr, "Your terminal does not support colors!\n");
-        exit(EXIT_FAILURE);
-    }
-    if (start_color() == ERR) {
-        endwin();
-        fprintf(stderr, "Error when setting 'noecho mode'!\n");
-        exit(EXIT_FAILURE);
-    }
-    err = 0;
-    err |= init_pair(1, COLOR_BLACK, COLOR_BLUE);
-    err |= init_pair(2, COLOR_BLACK, COLOR_CYAN);
-    err |= init_pair(3, COLOR_BLACK, COLOR_GREEN);
-    err |= init_pair(4, COLOR_BLACK, COLOR_MAGENTA);
-    err |= init_pair(5, COLOR_BLACK, COLOR_RED);
-    err |= init_pair(6, COLOR_BLACK, COLOR_YELLOW);
-    err |= init_pair(7, COLOR_BLACK, COLOR_WHITE);
-    err |= init_pair(8, COLOR_BLACK, COLOR_WHITE);
-    err |= init_pair(9, COLOR_BLACK, COLOR_WHITE);
-    if (err == ERR) {
-        endwin();
-        fprintf(stderr, "Error when setting color pairs!\n");
-        exit(EXIT_FAILURE);
-    }
-
 
     /* Allocate grid memory */
     grid = (cell_t **)calloc(COLS, sizeof(cell_t *));
@@ -175,7 +234,7 @@ int main(int argc, char* argv[]) {
     y = LINES / 2;
     do {
         update_grid(grid);
-        if (draw_frame(grid)) {
+        if (draw_frame(grid, mode)) {
             endwin();
             fprintf(stderr, "Error when drawing next game frame!\n");
             for (x = 0; x < COLS; ++x)
@@ -235,21 +294,17 @@ int main(int argc, char* argv[]) {
         }
     } while (ch != '\n' && ch != KEY_ENTER);
 
-    /* Hide cursor before game begins */
-    if (curs_set(0) == ERR) {
-        endwin();
-        fprintf(stderr, "Error when trying to hide the cursor!\n");
-        for (x = 0; x < COLS; ++x)
-            free(grid[x]);
-        free(grid);
-        exit(EXIT_FAILURE);
-    }
+    /* Try to hide cursor before game begins.
+       If the terminal doesn't allow the cursor to become invisible, ERR will
+       be returned. In this case just keep the application going with the
+       cursor showing. */
+   curs_set(0);
 
     /* Start game */
     do {
         compute_next_frame(grid);
         update_grid(grid);
-        if (draw_frame(grid)) {
+        if (draw_frame(grid, mode)) {
             endwin();
             fprintf(stderr, "Error when drawing next game frame!\n");
             for (x = 0; x < COLS; ++x)
@@ -381,21 +436,44 @@ static void compute_next_frame(cell_t **grid) {
  * The current frame is taken from the `.state` values of all cells inside the
  * given `grid`.
  */
-static int draw_frame(cell_t **grid) {
+static int draw_frame(cell_t **grid, int mode) {
     int x, y, color;
 
-    for (x = 0; x < COLS; ++x) {
-        for (y = 0; y < LINES; ++y) {
-            if (grid[x][y].state_old == ALIVE) {
-                color = COLOR_PAIR(count_living_neighbors(grid, x, y) + 1);
-                attron(color);
-                mvaddch(y, x, ' ');
-                attroff(color);
-            } else {
-                mvaddch(y, x, ' ');
+    if (mode == MODE_CHAR) {
+        for (x = 0; x < COLS; ++x) {
+            for (y = 0; y < LINES; ++y) {
+                if (grid[x][y].state_old == ALIVE)
+                    mvaddch(y, x, MODE_CHAR_SYMBOL);
+                else
+                    mvaddch(y, x, ' ');
             }
         }
-    }
+    } else if (mode == MODE_BW) {
+        for (x = 0; x < COLS; ++x) {
+            for (y = 0; y < LINES; ++y) {
+                if (grid[x][y].state_old == ALIVE) {
+                    color = COLOR_PAIR(9);
+                    attron(color);
+                    mvaddch(y, x, ' ');
+                    attroff(color);
+                } else
+                    mvaddch(y, x, ' ');
+            }
+        }
+    } else if (mode == MODE_COLOR) {
+        for (x = 0; x < COLS; ++x) {
+            for (y = 0; y < LINES; ++y) {
+                if (grid[x][y].state_old == ALIVE) {
+                    color = COLOR_PAIR(count_living_neighbors(grid, x, y) + 1);
+                    attron(color);
+                    mvaddch(y, x, ' ');
+                    attroff(color);
+                } else
+                    mvaddch(y, x, ' ');
+            }
+        }
+    } else
+        return -1;
 
     if (refresh() == ERR)
         return -1;

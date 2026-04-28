@@ -1,16 +1,28 @@
 /* C89 standard */
 #include <stdlib.h>
+#include <string.h>
 
 /* libncurses */
 #include <ncurses.h>
 
 
-#define CTRL_KEY(k) ((k) & 0x1f)
-
 #define ALIVE 1
 #define DEAD  0
 
 #define TIME_OUT 100
+
+#define CTRL_KEY(k) ((k) & 0x1f)
+
+/* Two-step macro (with extra level of indirection) to allow the preprocessor
+   to expand the macros before they are converted to strings */
+#define CGOL_STR_HELPER(x) #x
+#define CGOL_STR(x) CGOL_STR_HELPER(x)
+
+#define CGOL_VER_MAJOR 0
+#define CGOL_VER_MINOR 1
+#define CGOL_VER_PATCH 0
+
+#define CGOL_VER CGOL_STR(CGOL_VER_MAJOR) "." CGOL_STR(CGOL_VER_MINOR) "." CGOL_STR(CGOL_VER_PATCH)
 
 
 typedef struct cell_tag {
@@ -33,6 +45,29 @@ int main(int argc, char* argv[]) {
     int i, x, y;
     int ch;
     int err;
+
+
+    /* Handle arguments */
+    for (i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
+            fprintf(stdout, "Usage: %s [-v | --version] [-h | --help] <file-path>\n", argv[0]);
+            fprintf(stdout, "\nUsable commands:\n");
+            fprintf(stdout, "    W | UP    = move up one cell\n");
+            fprintf(stdout, "    S | DOWN  = move down one cell\n");
+            fprintf(stdout, "    A | LEFT  = move left one cell\n");
+            fprintf(stdout, "    D | RIGHT = move right one cell\n");
+            fprintf(stdout, "    E         = turn on/off selected cell\n");
+            fprintf(stdout, "    ENTER     = start game\n");
+            fprintf(stdout, "    CTRL+Q    = quit\n");
+            exit(EXIT_SUCCESS);
+        } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
+            fprintf(stdout, "%s version %s\n", argv[0], CGOL_VER);
+            exit(EXIT_SUCCESS);
+        } else {
+            fprintf(stderr, "Unrecognized argument '%s'!\n", argv[i]);
+            exit(EXIT_FAILURE);
+        }
+    }
 
 
     /* Initialize term in "curses mode".

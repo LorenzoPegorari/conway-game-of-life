@@ -9,7 +9,7 @@
 #define ALIVE 1
 #define DEAD  0
 
-#define TIME_OUT 100
+#define TIME_OUT_DEFAULT 100
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 
@@ -45,12 +45,18 @@ int main(int argc, char* argv[]) {
     int i, x, y;
     int ch;
     int err;
+    int timeout_val;
 
 
+    timeout_val = TIME_OUT_DEFAULT;
     /* Handle arguments */
     for (i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             fprintf(stdout, "Usage: %s [-v | --version] [-h | --help] <file-path>\n", argv[0]);
+            fprintf(stdout, "\nOptions:\n");
+            fprintf(stdout, "    -h        | --help           = print this info\n");
+            fprintf(stdout, "    -v        | --version        = print application's version\n");
+            fprintf(stdout, "    -t <uint> | --timeout <uint> = define timeout time in ms (default=%i)\n", TIME_OUT_DEFAULT);
             fprintf(stdout, "\nUsable commands:\n");
             fprintf(stdout, "    W | UP    = move up one cell\n");
             fprintf(stdout, "    S | DOWN  = move down one cell\n");
@@ -63,6 +69,17 @@ int main(int argc, char* argv[]) {
         } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
             fprintf(stdout, "%s version %s\n", argv[0], CGOL_VER);
             exit(EXIT_SUCCESS);
+        } else if (strcmp(argv[i], "-t") == 0 || strcmp(argv[i], "--timeout") == 0) {
+            ++i;
+            if (i >= argc) {
+                fprintf(stderr, "Value of argument '%s' is missing!\n", argv[i - 1]);
+                exit(EXIT_FAILURE);
+            }
+            timeout_val = atoi(argv[i]);
+            if (timeout_val < 0) {
+                fprintf(stderr, "Value '%i' of argument '%s' can't be negative!\n", timeout_val, argv[i - 1]);
+                exit(EXIT_FAILURE);
+            }
         } else {
             fprintf(stderr, "Unrecognized argument '%s'!\n", argv[i]);
             exit(EXIT_FAILURE);
@@ -111,7 +128,7 @@ int main(int argc, char* argv[]) {
 
     /* Set timeout for all `ncurses` input function blocks.
        After `delay` milliseconds the function fails if there is still no input. */
-    timeout(TIME_OUT);
+    timeout(timeout_val);
 
     /* Check if terminal supports colors, and if so enable them */
     if (has_colors() == FALSE) {

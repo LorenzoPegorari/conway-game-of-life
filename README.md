@@ -1,5 +1,7 @@
 # Conway's Game of Life
 
+![](preview.gif)
+
 This application is a demo of **[Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)**.
 
 I wrote this application to improve my knowledge of the _C language_, the _`nurses` library_, and how _Unix-like terminals_ work.

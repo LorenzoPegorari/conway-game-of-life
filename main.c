@@ -409,7 +409,7 @@ static int y_ssum(int y1, int y2) {
  * Return the number of living neighbors of the cell inside `grid` at the given
  * coordinates `x` and `y`.
  */
-int count_living_neighbors(cell_t **grid, int x, int y) {
+static int count_living_neighbors(cell_t **grid, int x, int y) {
     int xo, yo, sum;
 
     sum = 0;

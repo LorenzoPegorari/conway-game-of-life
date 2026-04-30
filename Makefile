@@ -32,7 +32,7 @@ SRCS := main.c
 OBJS := $(addprefix $(BUILD_DIR)/,$(SRCS:.c=.o))
 
 CC      := gcc
-CFLAGS  := -std=c89 -Wall -Wextra -pedantic
+CFLAGS  := -std=c89 -O2 -Wall -Wextra -pedantic
 LDFLAGS := -lc -lncurses
 
 

@@ -491,7 +491,7 @@ static int draw_frame(cell_t **grid, int mode) {
         for (x = 0; x < COLS; ++x) {
             for (y = 0; y < LINES; ++y) {
                 if (grid[x][y].state_old == ALIVE) {
-                    color = COLOR_PAIR(count_living_neighbors(grid, x, y) + 1);
+                    color = COLOR_PAIR(grid[x][y].living_neighbors + 1);
                     attron(color);
                     mvaddch(y, x, ' ');
                     attroff(color);

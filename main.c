@@ -336,7 +336,7 @@ int main(int argc, char* argv[]) {
        If the terminal doesn't allow the cursor to become invisible, ERR will
        be returned. In this case just keep the application going with the
        cursor showing. */
-   curs_set(0);
+    (void)curs_set(0);
 
     /* Start game */
     do {
@@ -481,9 +481,9 @@ static int draw_frame(cell_t **grid, int mode) {
         for (x = 0; x < COLS; ++x) {
             for (y = 0; y < LINES; ++y) {
                 if (grid[x][y].state_old == ALIVE)
-                    mvaddch(y, x, MODE_CHAR_SYMBOL);
+                    (void)mvaddch(y, x, MODE_CHAR_SYMBOL);
                 else
-                    mvaddch(y, x, ' ');
+                    (void)mvaddch(y, x, ' ');
             }
         }
     } else if (mode == MODE_BW) {
@@ -491,11 +491,11 @@ static int draw_frame(cell_t **grid, int mode) {
             for (y = 0; y < LINES; ++y) {
                 if (grid[x][y].state_old == ALIVE) {
                     color = COLOR_PAIR(1);
-                    attron(color);
-                    mvaddch(y, x, ' ');
-                    attroff(color);
+                    (void)attron(color);
+                    (void)mvaddch(y, x, ' ');
+                    (void)attroff(color);
                 } else
-                    mvaddch(y, x, ' ');
+                    (void)mvaddch(y, x, ' ');
             }
         }
     } else if (mode == MODE_COLOR) {
@@ -503,11 +503,11 @@ static int draw_frame(cell_t **grid, int mode) {
             for (y = 0; y < LINES; ++y) {
                 if (grid[x][y].state_old == ALIVE) {
                     color = COLOR_PAIR(grid[x][y].living_neighbors + 1);
-                    attron(color);
-                    mvaddch(y, x, ' ');
-                    attroff(color);
+                    (void)attron(color);
+                    (void)mvaddch(y, x, ' ');
+                    (void)attroff(color);
                 } else
-                    mvaddch(y, x, ' ');
+                    (void)mvaddch(y, x, ' ');
             }
         }
     } else

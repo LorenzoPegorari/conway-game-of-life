@@ -157,11 +157,11 @@ int main(int argc, char* argv[]) {
     /* Check if terminal supports colors, and if so enable them */
     if (has_colors() == FALSE) {
         switch (mode) {
-            case MODE_CHAR:
-                break;
-
             case MODE_NULL:
                 mode = MODE_CHAR;
+                break;
+
+            case MODE_CHAR:
                 break;
 
             case MODE_BW:
@@ -175,11 +175,22 @@ int main(int argc, char* argv[]) {
             case MODE_CHAR:
                 break;
 
+            case MODE_BW:
+                if (start_color() == ERR) {
+                    endwin();
+                    fprintf(stderr, "Error when enabling colors!\n");
+                    exit(EXIT_FAILURE);
+                }
+                if (init_pair(1, COLOR_BLACK, COLOR_WHITE) == ERR) {
+                    endwin();
+                    fprintf(stderr, "Error when setting color pairs!\n");
+                    exit(EXIT_FAILURE);
+                }
+                break;
+
             case MODE_NULL:
                 mode = MODE_COLOR;
                 __attribute__ ((fallthrough));  /* GCC specific: signal explicit fallthrough */
-
-            case MODE_BW:
             case MODE_COLOR:
                 if (start_color() == ERR) {
                     endwin();
@@ -479,7 +490,7 @@ static int draw_frame(cell_t **grid, int mode) {
         for (x = 0; x < COLS; ++x) {
             for (y = 0; y < LINES; ++y) {
                 if (grid[x][y].state_old == ALIVE) {
-                    color = COLOR_PAIR(9);
+                    color = COLOR_PAIR(1);
                     attron(color);
                     mvaddch(y, x, ' ');
                     attroff(color);

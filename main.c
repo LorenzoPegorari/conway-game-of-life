@@ -78,7 +78,6 @@ int main(int argc, char* argv[]) {
     cell_t **grid;
     int i, x, y;
     int ch;
-    int err;
     int timeout_val;
     int mode;
 
@@ -171,6 +170,8 @@ int main(int argc, char* argv[]) {
                 exit(EXIT_FAILURE);
         }
     } else {
+        int err;
+
         switch (mode) {
             case MODE_CHAR:
                 break;
@@ -181,7 +182,10 @@ int main(int argc, char* argv[]) {
                     fprintf(stderr, "Error when enabling colors!\n");
                     exit(EXIT_FAILURE);
                 }
-                if (init_pair(1, COLOR_BLACK, COLOR_WHITE) == ERR) {
+                err = 0;
+                err |= init_pair(1, COLOR_BLACK, COLOR_WHITE);
+                err |= init_pair(2, COLOR_BLACK, COLOR_BLACK);
+                if (err == ERR) {
                     endwin();
                     fprintf(stderr, "Error when setting color pairs!\n");
                     exit(EXIT_FAILURE);
@@ -207,6 +211,7 @@ int main(int argc, char* argv[]) {
                 err |= init_pair(7, COLOR_BLACK, COLOR_WHITE);
                 err |= init_pair(8, COLOR_BLACK, COLOR_WHITE);
                 err |= init_pair(9, COLOR_BLACK, COLOR_WHITE);
+                err |= init_pair(10, COLOR_BLACK, COLOR_BLACK);
                 if (err == ERR) {
                     endwin();
                     fprintf(stderr, "Error when setting color pairs!\n");
@@ -494,8 +499,12 @@ static int draw_frame(cell_t **grid, int mode) {
                     (void)attron(color);
                     (void)mvaddch(y, x, ' ');
                     (void)attroff(color);
-                } else
+                } else {
+                    color = COLOR_PAIR(2);
+                    (void)attron(color);
                     (void)mvaddch(y, x, ' ');
+                    (void)attroff(color);
+                }
             }
         }
     } else if (mode == MODE_COLOR) {
@@ -506,8 +515,12 @@ static int draw_frame(cell_t **grid, int mode) {
                     (void)attron(color);
                     (void)mvaddch(y, x, ' ');
                     (void)attroff(color);
-                } else
+                } else {
+                    color = COLOR_PAIR(10);
+                    (void)attron(color);
                     (void)mvaddch(y, x, ' ');
+                    (void)attroff(color);
+                }
             }
         }
     } else

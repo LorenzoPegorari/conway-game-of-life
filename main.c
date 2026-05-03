@@ -60,9 +60,9 @@
 
 
 typedef struct cell_tag {
-    int state_old;
-    int state;
-    int living_neighbors;
+    unsigned char state_old;
+    unsigned char state;
+    unsigned char living_neighbors;
 } cell_t;
 
 

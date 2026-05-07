@@ -87,7 +87,7 @@ int main(int argc, char* argv[]) {
     /* Handle arguments */
     for (i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
-            fprintf(stdout, "Usage: %s [-v | --version] [-h | --help] <file-path>\n", argv[0]);
+            fprintf(stdout, "Usage: %s [-v | --version] [-h | --help] [-t <uint> | --timeout <uint>] [--char | --bw | --color] <file-path>\n", argv[0]);
             fprintf(stdout, "\nOptions:\n");
             fprintf(stdout, "  -h               = print this info\n");
             fprintf(stdout, "  --help\n");
